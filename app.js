@@ -3,9 +3,10 @@ const graphqlHttp = require("express-graphql");
 const bodyParser = require("body-parser");
 const { buildSchema } = require("graphql");
 const mongoose = require("mongoose");
-const app = express();
 
-const events = [];
+const Event = require("./models/event");
+
+const app = express();
 
 app.use(bodyParser.json());
 
@@ -42,14 +43,22 @@ app.use(
         return events;
       },
       createEvent: args => {
-        const event = {
-          _id: Math.random().toString(),
+        const event = new Event({
           title: args.eventInput.title,
           description: args.eventInput.description,
           price: +args.eventInput.price,
-          date: args.eventInput.date
-        };
-        events.push(event);
+          date: new Date(args.eventInput.date)
+        });
+        return event
+          .save()
+          .then(result => {
+            console.log(result);
+            return { ...result._doc };
+          })
+          .catch(err => {
+            console.log(err);
+            throw err;
+          });
         return event;
       }
     },
@@ -59,7 +68,7 @@ app.use(
 
 mongoose
   .connect(
-    `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@cluster0-26cxs.mongodb.net/test?retryWrites=true&w=majority`,
+    `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@cluster0-26cxs.mongodb.net/${process.env.MONGO_DB}?retryWrites=true&w=majority`,
     { useNewUrlParser: true, useUnifiedTopology: true }
   )
   .then(() => {
